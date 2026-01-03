@@ -21,3 +21,12 @@ Log of changes for the jMon/tmon package.
 	+ tmon now shows number of cores and total amount of memory on remote hosts
 26/09/2014 
 	+ put on github
+
+04/01/2026 version 0.5.0
+    + forked the master branch of the original tMon.
+	+ the forked tmon now shows the user name of top CPU/MEM usage, achieved 
+	by scanning the process folders in the /proc folder.
+	+ fix codes with potential memory-leak risk.
+	+ fix codes with potential dead-lock.
+	+ improve the threads and child-process controlling and signal handler.
+

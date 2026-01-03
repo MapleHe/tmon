@@ -43,7 +43,7 @@ forked by thorfinn thorfinn.sand@gmail.com
 #include <math.h>
 
 
-#define MSGLEN 64
+#define MSGLEN 128
 
 #define ETC_RCFILE "/etc/tmonrc"
 #define USER_RCFILE ".tmonrc"
@@ -68,6 +68,8 @@ struct hostitem	{
   int sock_fd;
   struct sockaddr_in addr;
   float ncore,nmem,cpu, mem, swp;
+  char top_cpu_user[8];
+  char top_mem_user[8];
   char active;
   struct hostitem *prev, *next;
 };
@@ -155,9 +157,12 @@ int addhost (const char *hostname, unsigned short int port)	{
   }
   
   ptr->next = NULL;
-  strncpy(ptr->hostname, hostname, 64);
+  strncpy(ptr->hostname, hostname, 63);
+  ptr->hostname[63] = '\0';
   ptr->port = port;
   ptr->active = 1;
+  ptr->top_cpu_user[0] = '\0';
+  ptr->top_mem_user[0] = '\0';
   
   lasthost = ptr;
   return connect_socket(ptr);
@@ -260,6 +265,21 @@ static void show_all(void)	{
     move(pos++, 0);
     attrset(DEFAULT_COLOUR);
     printw("%s: (%.0f Cores,%.2f Gig Memory)", disphost->hostname, disphost->ncore,disphost->nmem);
+
+    if (disphost->top_cpu_user[0] != '\0') {
+      attrset(DEFAULT_COLOUR);
+      printw(" Top cpu:");
+      attrset(COLOR_PAIR(4) | A_BOLD);
+      printw("%.6s", disphost->top_cpu_user);
+    }
+    if (disphost->top_mem_user[0] != '\0') {
+      attrset(DEFAULT_COLOUR);
+      printw(" Top mem:");
+      attrset(COLOR_PAIR(4) | A_BOLD);
+      printw("%.6s", disphost->top_mem_user);
+    }
+
+    attrset(DEFAULT_COLOUR);
     clrtoeol();
     move(pos++, 0);
     attrset(DEFAULT_COLOUR);
@@ -310,7 +330,7 @@ static void adjust(int sig)	{
   else	{
     interrupted = TRUE;
   }
-  signal(SIGWINCH, (void *) &adjust);
+  signal(SIGWINCH, adjust);
 }
 
 
@@ -342,19 +362,31 @@ int main (int argc, char *argv[])	{
   static int my_bg = COLOR_BLACK;
   char rcfile[64] = "";
   char	opt, *home;
+  size_t home_len;
   
-
+ 
   if ((home = getenv("HOME")) != NULL)	{
-    strncpy(rcfile, home, 64);
-    if (strlen(rcfile) < 64) 
-      strncat(rcfile, "/", 1);
+    home_len = strlen(home);
+    if (home_len < 63)	{
+      strncpy(rcfile, home, 63);
+      rcfile[63] = '\0';
+      strncat(rcfile, "/", 63 - strlen(rcfile));
+    } else {
+      rcfile[0] = '\0';
+    }
   }
-  strncat(rcfile, USER_RCFILE, 64-strlen(rcfile));
+  if (strlen(rcfile) + strlen(USER_RCFILE) < 64)	{
+    strncat(rcfile, USER_RCFILE, 63 - strlen(rcfile));
+  } else {
+    strncpy(rcfile, USER_RCFILE, 63);
+    rcfile[63] = '\0';
+  }
   
   while ((opt=getopt(argc,argv,"f:vh")) != EOF )	{
     switch(opt)	{
     case 'f':	{
-      strncpy(rcfile, optarg, 64);
+      strncpy(rcfile, optarg, 63);
+      rcfile[63] = '\0';
       break;
     }
     case 'v':	{
@@ -381,6 +413,7 @@ int main (int argc, char *argv[])	{
   init_pair(1,2,my_bg);
   init_pair(2,3,my_bg);
   init_pair(3,1,my_bg);
+  init_pair(4,4,my_bg);
   erase();
   parse_rcfile(rcfile);
   erase();
@@ -392,8 +425,8 @@ int main (int argc, char *argv[])	{
       thishost = thishost->next;
     }
     
-    signal(SIGINT, (void *) &finish);
-    signal(SIGWINCH, (void *) &adjust);
+    signal(SIGINT, finish);
+    signal(SIGWINCH, adjust);
     signal(SIGPIPE, SIG_IGN);
     
     topdisphost = firsthost;
@@ -405,15 +438,33 @@ int main (int argc, char *argv[])	{
       while (thishost != NULL)	{
 	if (FD_ISSET(thishost->sock_fd, &rd_set))	{
 	  if (recv(thishost->sock_fd, buf, MSGLEN, 0) == MSGLEN)	{
+	    char uC[8], uM[8];
+	    int parsed;
+	    
 	    //fprintf(stderr,"%s\n",buf);
-	    if (sscanf(buf,"cores:%f mem:%f cpu:%f mem:%f swp:%f",&ncore,&nmem, 
-		       &cpu, &mem, &swp) == 5)	{
-	      //	      fprintf(stderr,"\nncores:%f,nmem:%f cpu:%f mem:%f\n",ncore,nmem,cpu,mem);
+	    
+	    parsed = sscanf(buf,"cores:%f mem:%f cpu:%f mem:%f swp:%f uC:%7s uM:%7s",
+			    &ncore, &nmem, &cpu, &mem, &swp, uC, uM);
+	    
+	    if (parsed == 7) {
 	      thishost->ncore = ncore;
 	      thishost->nmem = nmem;
 	      thishost->cpu = cpu;
 	      thishost->mem = mem;
 	      thishost->swp = swp;
+	      strncpy(thishost->top_cpu_user, uC, 7);
+	      thishost->top_cpu_user[7] = '\0';
+	      strncpy(thishost->top_mem_user, uM, 7);
+	      thishost->top_mem_user[7] = '\0';
+	    } else if (sscanf(buf,"cores:%f mem:%f cpu:%f mem:%f swp:%f",
+			      &ncore, &nmem, &cpu, &mem, &swp) == 5)	{
+	      thishost->ncore = ncore;
+	      thishost->nmem = nmem;
+	      thishost->cpu = cpu;
+	      thishost->mem = mem;
+	      thishost->swp = swp;
+	      thishost->top_cpu_user[0] = '\0';
+	      thishost->top_mem_user[0] = '\0';
 	    }else{
 	      fprintf(stderr,"Error parsing socket message\n");
 	      exit(0);
