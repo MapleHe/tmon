@@ -51,7 +51,7 @@ forked by thorfinn thorfinn@binf.ku.dk
 #define BAD_OPEN_MESSAGE "Error: /proc filesystem not mounted.\n"
 #define STAT_FILE "/proc/stat"
 #define MEMINFO_FILE "/proc/meminfo"
-#define VERSION "0.3"
+#define VERSION "0.5"
 #define SLEEPTIME 250000
 #define DISKWAIT 20 //This means that the disk will only be check every 5th sec.
 #define NOBODY "nobody"

@@ -56,8 +56,8 @@ forked by thorfinn thorfinn.sand@gmail.com
 #define SWAP "Harddrive"
 #define minsize 40
 
-#define MAJ_VER "0.4"
-#define MIN_VER ".3"
+#define MAJ_VER "0.5"
+#define MIN_VER ".0"
 
 #define DEFAULT_COLOUR (attr_t) 0
 
