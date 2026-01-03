@@ -2,7 +2,7 @@
 
 tMon - A distributed resource monitor
 
-!!! This updated version of tMon hasn't been test in production env, but only my local env. !!!
+### **!!! This updated version of tMon hasn't been test in production env, but only my local env. !!!**
 
 ## Installation
 
@@ -32,6 +32,8 @@ default filename. Alternative filenames may be specified on the command line.
 
 
 ## Usage
+
+Make sure the port 7777 (the default port) are available and accessible.
 
 ### Server service
 
