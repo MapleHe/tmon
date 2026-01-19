@@ -1,4 +1,5 @@
-# [![tests](https://github.com/MapleHe/tmon/actions/workflows/main.yml/badge.svg)](https://github.com/MapleHe/tmon/actions/workflows/main.yml) tmon
+# tmon
+[![tests](https://github.com/MapleHe/tmon/actions/workflows/main.yml/badge.svg)](https://github.com/MapleHe/tmon/actions/workflows/main.yml)
 
 tMon - A distributed resource monitor
 
